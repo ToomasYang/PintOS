@@ -1,7 +1,7 @@
 # PintOS
 
-# Project B: userprog
+# Project B: User Programs
 
-# Project C: threads
+# Project C: Threads
 
-# Project D: virtual memory
+# Project D: Virtual Memory
