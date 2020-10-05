@@ -51,13 +51,29 @@ command line input, and iterate backwards, placing each arg into the
 address, and moving the pointer, until we hit argc, then we push a 
 null address.
 
+We do not check if we are overflowing the stackpage during stack
+setup, but we do check if the pointer is at a valid address when
+handling and executing the args. This allows an easier 
+implementation of overflow, but at the cost of a late catch.
+
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
+strtok_r() allows us the save the pointer to the arguments when parsing
+the command line. This makes it much easier to save the pointer to
+a separate variable for later use, as compared to strtok(), which
+doesn't provide the location after the delimiter.
 
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+1. Parsing the command line in the shell makes more sense security
+wise, as the shell can do validation checks on the input so the
+kernel won't process anything unexpected, which could lead to problems.
+
+2. We can save on kernel runtime, as command parsing doesn't need
+to be done at the kernel level, opening up processing times.
 
 			     SYSTEM CALLS
 			     ============
