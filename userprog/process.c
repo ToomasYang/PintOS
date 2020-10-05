@@ -40,11 +40,11 @@ process_execute (const char *file_name)
   
   /* Instead of passing the whole command line, split up into
 	  command name and arguments */
-  char *command_name, *args;
-  command_name = strtok_r(fn_copy," ", &args);
+  // char *command_name, *args;
+  // command_name = strtok_r(fn_copy," ", &args);
   
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (command_name, PRI_DEFAULT, start_process, args);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -442,7 +442,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        *esp = PHYS_BASE - 12;
       else
         palloc_free_page (kpage);
     }
