@@ -46,15 +46,19 @@ process_execute (const char *file_name)
   } else {
     args->argc = 0;
     args->argv = (char **)palloc_get_page(0);
-
-    char *cmd, *ptr;
-    cmd = strtok_r(fn_copy, " ", &ptr);
-    args->argv[args->argc] = cmd;
-    while (cmd != NULL) {
-      cmd = strtok_r(NULL, " ", &ptr);
-      args->argv[args->argc++] = cmd;
+    if (args->argv == NULL)
+    {
+      free(args);
+      args = NULL;
+    } else {
+      char *cmd, *ptr;
+      cmd =
+          args->argv[args->argc] = cmd;
+      for (cmd = strtok_r(fn_copy, " ", &ptr); cmd != NULL; cmd = strtok_r(NULL, " ", &ptr))
+      {
+        args->argv[args->argc++] = cmd;
+      }
     }
-    
   }
   
   /* Create a new thread to execute FILE_NAME. */
