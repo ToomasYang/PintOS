@@ -30,7 +30,8 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  
+  struct list_args *args;
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -40,14 +41,41 @@ process_execute (const char *file_name)
   
   /* Instead of passing the whole command line, split up into
 	  command name and arguments */
+  args = parse_arguments(fn_copy);
+
   // char *command_name, *args;
   // command_name = strtok_r(fn_copy," ", &args);
   
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (args->argv[0], PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
+}
+
+static struct list_args *
+parse_arguments(char *str_input)
+{
+  struct list_args *args;
+  char *leftover;
+  char *curr;
+
+  args = (struct list_args *)malloc(sizeof(struct list_args));
+  if (args == NULL)
+    return NULL;
+
+  args->argc = 0;
+  args->argv = (char **)palloc_get_page(0);
+  if (args->argv == NULL)
+  {
+    free(args);
+    return NULL;
+  }
+
+  for (curr = strtok_r(str_input, " ", &leftover); curr != NULL;
+       curr = strtok_r(NULL, " ", &leftover))
+    args->argv[args->argc++] = curr;
+  return args;
 }
 
 /* A thread function that loads a user process and starts it
@@ -442,7 +470,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
