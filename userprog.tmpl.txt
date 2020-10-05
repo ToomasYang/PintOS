@@ -8,14 +8,20 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Willy Chang <changw@hawaii.edu>
+Sydney Dempsey <dempseys@hawaii.edu>
+Alvin Yang <ayang27@hawaii.edu>
+Thomas Yang <thomasy4@hawaii.edu>
 
 ---- PRELIMINARIES ----
 
 >> If you have any preliminary comments on your submission, notes for the
 >> TAs, or extra credit, please give them here.
+
+Its very unlikely that any tests will past, as we weren't able to produce
+any outputs when running the tests. We did attempt to implement everything,
+but we were unable to implement process_wait(), which is likely the cause
+of us unable to produce an output for the test inputs.
 
 >> Please cite any offline or online sources you consulted while
 >> preparing your submission, other than the Pintos documentation, course
@@ -35,6 +41,15 @@ FirstName LastName <email@domain.example>
 >> A2: Briefly describe how you implemented argument parsing.  How do
 >> you arrange for the elements of argv[] to be in the right order?
 >> How do you avoid overflowing the stack page?
+
+When receiving the command line input, we split it up before placing
+it into a thread, into command_name and args. We can give this to
+the thread for argument parsing. When we setup the stack, we determine
+the argc, and we move the stack pointer that much + 1, so we will be
+building the stack backwards. From here, we start at the end of our
+command line input, and iterate backwards, placing each arg into the
+address, and moving the pointer, until we hit argc, then we push a 
+null address.
 
 ---- RATIONALE ----
 
