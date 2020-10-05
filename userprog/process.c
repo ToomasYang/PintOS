@@ -7,7 +7,6 @@
 #include <string.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
-#include "userprog/syscall.h"
 #include "userprog/tss.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
@@ -31,39 +30,21 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  struct child_status *child; 
-  struct thread *cur;
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  	printf("Yes\n");
-
-  /* Instead of passing the whole command line, split up into
-	  command name and arguments */
+  
   char *command_name, *args;
-  command_name = strtok_r(fn_copy," ", &args);
-  //printf("%s, %s\n", command_name, args);
+  command_name = strtok_r (fn_copy, " ", &args);
+  
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (command_name, PRI_DEFAULT, start_process, args);
-  if (tid == TID_ERROR) {
-    palloc_free_page (fn_copy);
-  }
-  else {
-	printf("Yes2\n");
-      cur = thread_current ();
-      child = calloc (1, sizeof *child);
-      if (child != NULL) 
-	{
-	  child->child_id = tid;
-	  child->is_exit_called = false;
-	  child->has_been_waited = false;
-	  list_push_back(&cur->children, &child->elem_child_status);
-	}
-    }  
-  //thread_start();
+  tid = thread_create (command_name, PRI_DEFAULT, start_process, fn_copy);
+  if (tid == TID_ERROR)
+    palloc_free_page (fn_copy); 
   return tid;
 }
 
@@ -75,7 +56,7 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-	printf("Yes3\n");
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -104,6 +85,7 @@ start_process (void *file_name_)
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
+
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
@@ -235,7 +217,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-	printf("Yes");
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -389,11 +371,15 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
 /* Loads a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
+
         - READ_BYTES bytes at UPAGE must be read from FILE
           starting at offset OFS.
+
         - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
+
    The pages initialized by this function must be writable by the
    user process if WRITABLE is true, read-only otherwise.
+
    Return true if successful, false if a memory allocation error
    or disk read error occurs. */
 static bool
@@ -448,95 +434,76 @@ setup_stack (void **esp, const char *file_name)
 {
   uint8_t *kpage;
   bool success = false;
-	printf("Yes");
+
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
         *esp = PHYS_BASE;
-        uint8_t *argstr_head;
-        char *cmd_name = thread_current ()->name;
-        int strlength, total_length = 0;
-        int argc;
+		char *token = file_name;
+		char *save_ptr;
+		void *stack_pointer = *esp;
+		int argc = 0;
+		int total_length = 0;
 
-        /*push the arguments string into stack*/
-        strlength = strlen(file_name) + 1;
-        *esp -= strlength;
-        memcpy(*esp, file_name, strlength);
-        total_length += strlength;
+		while (token != NULL)
+		{
+			int arg_length = (strlen(token) + 1);
+			total_length += arg_length;
+			stack_pointer -= arg_length;
+			memcpy(stack_pointer, token, arg_length);
+			argc++;
+			token = strtok_r(NULL, " ", &save_ptr);
+		}
 
-        /*push command name into stack*/
-        strlength = strlen(cmd_name) + 1;
-        *esp -= strlength;
-        argstr_head = *esp;
-        memcpy(*esp, cmd_name, strlength);
-        total_length += strlength;
+		char *args_pointer = (char *) stack_pointer;
 
-        /*set alignment, get the starting address, modify *esp */
-        *esp -= 4 - total_length % 4;
+		/*adding word align*/
+		int  word_align = 0;
+		while (total_length % 4 != 0)
+		{
+			word_align++;
+			total_length++;
+		}
+		if (word_align != 0)
+		{
+			stack_pointer -= word_align;
+			memset(stack_pointer, 0, word_align);
+		}
 
-        /* push argv[argc] null into the stack */
-        *esp -= 4;
-        * (uint32_t *) *esp = (uint32_t) NULL;
+		/*adding null char*/
+		stack_pointer -= sizeof(char *);
+		memset(stack_pointer, 0, 1);
 
-        /* scan throught the file name with arguments string downward,
-         * using the cur_addr and total_length above to define boundary.
-         * omitting the beginning space or '\0', but for every encounter
-         * after, push the last non-space-and-'\0' address, which is current
-         * address minus 1, as one of argv to the stack, and set the space to
-         * '\0', multiple adjancent spaces and '0' is treated as one.
-         */
-        int i = total_length - 1;
-        /*omitting the starting space and '\0' */
-        while (*(argstr_head + i) == ' ' ||  *(argstr_head + i) == '\0')
-          {
-            if (*(argstr_head + i) == ' ')
-              {
-                *(argstr_head + i) = '\0';
-              }
-            i--;
-          }
+		/*adding argument address*/
+		int args_pushed = 0;
+		while(argc > args_pushed)
+		{
+			stack_pointer -= sizeof(char *);
+			*((char **) stack_pointer) = args_pointer;
+			args_pushed++;
+			args_pointer += (strlen(args_pointer) + 1);
+		}
 
-        /*scan through args string, push args address into stack*/
-        char *mark;
-        for (mark = (char *)(argstr_head + i); i > 0;
-             i--, mark = (char*)(argstr_head+i))
-          {
-            /*detect args, if found, push it's address to stack*/
-            if ( (*mark == '\0' || *mark == ' ') &&
-                 (*(mark+1) != '\0' && *(mark+1) != ' '))
-              {
-                *esp -= 4;
-                * (uint32_t *) *esp = (uint32_t) mark + 1;
-                argc++;
-              }
-            /*set space to '\0', so that each arg string will terminate*/
-            if (*mark == ' ')
-              *mark = '\0';
-          }
+		/*adding char** */
+		char ** first_fetch = (char **) stack_pointer;
+		stack_pointer -= sizeof(char **);
+		*((char ***) stack_pointer) = first_fetch;
 
-        /*push one more arg, which is the command name, into stack*/
-        *esp -= 4;
-        * (uint32_t *) *esp = (uint32_t) argstr_head;
-        argc++;
+		/*adding number of arrguments*/
+		stack_pointer -= sizeof(int);
+		*(int *) (stack_pointer) = argc;
 
-        /*push argv*/
-        * (uint32_t *) (*esp - 4) = *(uint32_t *) esp;
-        *esp -= 4;
-
-        /*push argc*/
-        *esp -= 4;
-        * (int *) *esp = argc;
-
-        /*push return address*/
-        *esp -= 4;
-        * (uint32_t *) *esp = 0x0;
-	}
+		/*adding return address*/
+		stack_pointer -= sizeof(int*);
+		*(int *) (stack_pointer) = 0;
+		*esp = stack_pointer;
+		hex_dump((uintptr_t)*esp, *esp, sizeof(char) * 8, true);
+	  }
       else
         palloc_free_page (kpage);
     }
-
   return success;
 }
 
