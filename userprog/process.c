@@ -499,7 +499,7 @@ setup_stack (void **esp, const char *file_name)
 		stack_pointer -= sizeof(int*);
 		*(int *) (stack_pointer) = 0;
 		*esp = stack_pointer;
-		hex_dump((uintptr_t)*esp, *esp, sizeof(char) * 8, true);
+		//hex_dump((uintptr_t)*esp, *esp, sizeof(char) * 8, true);
 	  }
       else
         palloc_free_page (kpage);
