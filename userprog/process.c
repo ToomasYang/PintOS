@@ -41,41 +41,27 @@ process_execute (const char *file_name)
   
   /* Instead of passing the whole command line, split up into
 	  command name and arguments */
-  args = parse_arguments(fn_copy);
+  if (fn_copy == NULL) {
+    args = NULL;
+  } else {
+    args->argc = 0;
+    args->argv = (char **)palloc_get_page(0);
 
-  // char *command_name, *args;
-  // command_name = strtok_r(fn_copy," ", &args);
+    char *cmd, *ptr;
+    cmd = strtok_r(fn_copy, " ", &ptr);
+    args->argv[args->argc] = cmd;
+    while (cmd != NULL) {
+      cmd = strtok_r(NULL, " ", &ptr);
+      args->argv[args->argc++] = cmd;
+    }
+    
+  }
   
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (args->argv[0], PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (args->argv[0], PRI_DEFAULT, start_process, args);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
-}
-
-static struct list_args *
-parse_arguments(char *str_input)
-{
-  struct list_args *args;
-  char *leftover;
-  char *curr;
-
-  args = (struct list_args *)malloc(sizeof(struct list_args));
-  if (args == NULL)
-    return NULL;
-
-  args->argc = 0;
-  args->argv = (char **)palloc_get_page(0);
-  if (args->argv == NULL)
-  {
-    free(args);
-    return NULL;
-  }
-
-  for (curr = strtok_r(str_input, " ", &leftover); curr != NULL;
-       curr = strtok_r(NULL, " ", &leftover))
-    args->argv[args->argc++] = curr;
-  return args;
 }
 
 /* A thread function that loads a user process and starts it
