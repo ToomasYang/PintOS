@@ -41,9 +41,8 @@ process_execute (const char *file_name)
   
   /* Instead of passing the whole command line, split up into
 	  command name and arguments */
-  if (fn_copy == NULL) {
-    args = NULL;
-  } else {
+  args = (struct list_args *)malloc(sizeof(struct list_args));
+  if (args != NULL) {
     args->argc = 0;
     args->argv = (char **)palloc_get_page(0);
     if (args->argv == NULL)
@@ -52,8 +51,6 @@ process_execute (const char *file_name)
       args = NULL;
     } else {
       char *cmd, *ptr;
-      cmd =
-          args->argv[args->argc] = cmd;
       for (cmd = strtok_r(fn_copy, " ", &ptr); cmd != NULL; cmd = strtok_r(NULL, " ", &ptr))
       {
         args->argv[args->argc++] = cmd;
