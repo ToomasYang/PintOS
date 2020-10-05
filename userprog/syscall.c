@@ -16,7 +16,7 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   void *esp = f->esp;
-  validate_user_address(esp, 1);
+  // validate_user_address(esp, 1);
 
   switch (*(int *)(esp))
   {
@@ -28,6 +28,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     default:
       break;
   }
+}
 
 void halt()
 {
