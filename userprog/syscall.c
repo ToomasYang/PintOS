@@ -6,6 +6,15 @@
 
 static void syscall_handler (struct intr_frame *);
 
+void validate_user_address(int *esp, int num_args)
+{
+  if (!is_user_vaddr(esp+num_args))
+  {
+    exit(-1);
+  }
+  return;
+}
+
 void
 syscall_init (void) 
 {
@@ -16,14 +25,17 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   void *esp = f->esp;
-  // validate_user_address(esp, 1);
+  validate_user_address(esp, 1);
 
   switch (*(int *)(esp))
   {
     case SYS_HALT:
       halt();
       break;
-    case SYS_EXEC:
+    case SYS_WAIT:
+      esp=esp+4;
+      validate_user_address(esp,1);
+      f->eax=wait(*(int *)(esp));
       break;
     default:
       break;
@@ -33,4 +45,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 void halt()
 {
   shutdown_power_off();
+}
+
+void exit(int status) {
+  struct thread *curr = 
 }

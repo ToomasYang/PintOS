@@ -31,6 +31,7 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
   struct list_args *args;
+  char *exec_name; char *ptr;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -38,28 +39,11 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  
-  /* Instead of passing the whole command line, split up into
-	  command name and arguments */
-  args = (struct list_args *)malloc(sizeof(struct list_args));
-  if (args != NULL) {
-    args->argc = 0;
-    args->argv = (char **)palloc_get_page(0);
-    if (args->argv == NULL)
-    {
-      free(args);
-      args = NULL;
-    } else {
-      char *cmd, *ptr;
-      for (cmd = strtok_r(fn_copy, " ", &ptr); cmd != NULL; cmd = strtok_r(NULL, " ", &ptr))
-      {
-        args->argv[args->argc++] = cmd;
-      }
-    }
-  }
-  
+
+  exec_name = strtok_r(fn_copy, " ", &ptr);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (args->argv[0], PRI_DEFAULT, start_process, args);
+  tid = thread_create (exec_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -108,7 +92,15 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  struct thread *curr = thread_current();
+  int exit_status;
+
+  if (child_tid != NULL) {
+    exit_status = 
+  } else {
+    exit_status = -1; 
+  }
+  return exit_status;
 }
 
 /* Free the current process's resources. */
@@ -215,7 +207,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (const char *file_name, void **esp);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -447,7 +439,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (const char *file_name, void **esp) 
 {
   uint8_t *kpage;
   bool success = false;
