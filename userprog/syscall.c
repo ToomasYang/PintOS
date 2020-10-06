@@ -5,16 +5,30 @@
 #include "threads/thread.h"
 
 static void syscall_handler (struct intr_frame *);
-
+void check_valid_ptr(const void *ptr);
 void
 syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
+void check_valid_ptr (const void *ptr)
+{
+    if (!is_user_vaddr(ptr))
+    {
+        exit(-1);
+    }
+
+    void *check = pagedir_get_page(thread_current()->pagedir, ptr);
+    if (check == NULL)
+    {
+        exit(-1);
+    }
+}
 
 static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
+  bool ret;
   int fd;
   void* buffer;
   unsigned size;
@@ -42,18 +56,24 @@ syscall_handler (struct intr_frame *f UNUSED)
     break;
 
   case SYS_CREATE:
-
+	check_valid_ptr(((const void*)f->esp + 1));
+	ret = filesys_create(*((const char *)f->esp + 1),((unsigned)f->esp + 2));
+	f->eax = ret;
     break;
 
   case SYS_REMOVE:
-
+	check_valid_ptr(((const void*)f->esp + 1));
+	ret = filesys_remove(*((const char *)f->esp + 1));
+	f->eax = ret;
     break;
 
   case SYS_OPEN:
-
+	check_valid_ptr(((const void*)f->esp + 1));
+	filesys_open(*((const char *)f->esp + 1));
+	f->eax = true;
     break;
 
-  case SYS_FILESIZE:;
+  case SYS_FILESIZE:
 
     fd = *((int*)f->esp + 1);
     return_code = file_length(fd);
