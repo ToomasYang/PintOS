@@ -85,7 +85,7 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_WAIT:
-      process_wait((pid_t)(sys_code+1));
+      process_wait((pid_t)(sys_code + 1));
       break;
 
     case SYS_FILESIZE:;
@@ -132,8 +132,6 @@ syscall_handler (struct intr_frame *f)
       exit(f->eax);
       break;
     }
-  
-  thread_exit ();
 }
 
 void exit(int status) {
