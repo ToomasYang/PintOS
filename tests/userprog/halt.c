@@ -6,6 +6,7 @@
 void
 test_main (void) 
 {
+  msg ("begin");
   halt ();
   fail ("should have halted");
 }
