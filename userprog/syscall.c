@@ -50,7 +50,7 @@ syscall_handler (struct intr_frame *f)
 
   int *sys_code = f->esp;
   validate_user_address(sys_code, 1);
-  
+
   switch(*(int*)f->esp)
   {
     case SYS_HALT:;
@@ -75,8 +75,7 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_OPEN:
       check_valid_ptr(((const void*)f->esp + 1));
-      filesys_open(*((const char *)f->esp + 1));
-      f->eax = true;
+      f->eax = filesys_open(*((const char *)f->esp + 1));
       break;
 
     case SYS_EXEC:
@@ -132,7 +131,7 @@ syscall_handler (struct intr_frame *f)
       exit(f->eax);
       break;
     }
-  
+
   thread_exit ();
 }
 
