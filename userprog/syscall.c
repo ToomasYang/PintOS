@@ -10,7 +10,6 @@
 
 static void syscall_handler (struct intr_frame *);
 void check_valid_ptr(const void *ptr);
-=======
 
 void validate_user_address(int *esp, int num_args)
 {
@@ -62,31 +61,23 @@ syscall_handler (struct intr_frame *f)
       exit(0);
       break;
 
-  case SYS_EXEC:
+    case SYS_CREATE:
+      check_valid_ptr(((const void*)f->esp + 1));
+      ret = filesys_create(*((const char *)f->esp + 1),((unsigned)f->esp + 2));
+      f->eax = ret;
+      break;
 
-    break;
+    case SYS_REMOVE:
+      check_valid_ptr(((const void*)f->esp + 1));
+      ret = filesys_remove(*((const char *)f->esp + 1));
+      f->eax = ret;
+      break;
 
-  case SYS_WAIT:
-
-    break;
-
-  case SYS_CREATE:
-	check_valid_ptr(((const void*)f->esp + 1));
-	ret = filesys_create(*((const char *)f->esp + 1),((unsigned)f->esp + 2));
-	f->eax = ret;
-    break;
-
-  case SYS_REMOVE:
-	check_valid_ptr(((const void*)f->esp + 1));
-	ret = filesys_remove(*((const char *)f->esp + 1));
-	f->eax = ret;
-    break;
-
-  case SYS_OPEN:
-	check_valid_ptr(((const void*)f->esp + 1));
-	filesys_open(*((const char *)f->esp + 1));
-	f->eax = true;
-    break;
+    case SYS_OPEN:
+      check_valid_ptr(((const void*)f->esp + 1));
+      filesys_open(*((const char *)f->esp + 1));
+      f->eax = true;
+      break;
 
     case SYS_EXEC:
       validate_user_address(sys_code, 1);
@@ -95,18 +86,6 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_WAIT:
       process_wait((pid_t)(sys_code+1));
-      break;
-
-    case SYS_CREATE:
-      exit(f->eax);
-      break;
-
-    case SYS_REMOVE:
-      exit(f->eax);
-      break;
-
-    case SYS_OPEN:
-      exit(f->eax);
       break;
 
     case SYS_FILESIZE:;
@@ -142,10 +121,14 @@ syscall_handler (struct intr_frame *f)
       break;
 
     case SYS_TELL:
+      fd = *((int *)f->esp + 1);
+      file_tell(fd);
       exit(f->eax);
       break;
 
     case SYS_CLOSE:
+      fd = *((int *)f->esp + 1);
+      file_close(fd);
       exit(f->eax);
       break;
     }
