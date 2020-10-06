@@ -9,6 +9,8 @@
 #include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
+void check_valid_ptr(const void *ptr);
+=======
 
 void validate_user_address(int *esp, int num_args)
 {
@@ -24,10 +26,24 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
+void check_valid_ptr (const void *ptr)
+{
+    if (!is_user_vaddr(ptr))
+    {
+        exit(-1);
+    }
+
+    void *check = pagedir_get_page(thread_current()->pagedir, ptr);
+    if (check == NULL)
+    {
+        exit(-1);
+    }
+}
 
 static void
 syscall_handler (struct intr_frame *f)
 {
+  bool ret;
   int fd;
   void* buffer;
   unsigned size;
@@ -45,6 +61,32 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXIT:;
       exit(0);
       break;
+
+  case SYS_EXEC:
+
+    break;
+
+  case SYS_WAIT:
+
+    break;
+
+  case SYS_CREATE:
+	check_valid_ptr(((const void*)f->esp + 1));
+	ret = filesys_create(*((const char *)f->esp + 1),((unsigned)f->esp + 2));
+	f->eax = ret;
+    break;
+
+  case SYS_REMOVE:
+	check_valid_ptr(((const void*)f->esp + 1));
+	ret = filesys_remove(*((const char *)f->esp + 1));
+	f->eax = ret;
+    break;
+
+  case SYS_OPEN:
+	check_valid_ptr(((const void*)f->esp + 1));
+	filesys_open(*((const char *)f->esp + 1));
+	f->eax = true;
+    break;
 
     case SYS_EXEC:
       validate_user_address(sys_code, 1);
