@@ -37,7 +37,7 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  
+
   char *command_name, *args;
   command_name = strtok_r (fn_copy, " ", &args);
   
@@ -94,8 +94,15 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED)
 {
-  //sema_down(&thread_current()->some_semaphore);
-  return -1;
+  struct thread *curr = thread_current();
+  int exit_status;
+
+  if (child_tid != NULL) {
+    exit_status = 1;
+  } else {
+    exit_status = -1; 
+  }
+  return exit_status;
 }
 
 /* Free the current process's resources. */
