@@ -451,7 +451,7 @@ setup_stack (void **esp, const char *file_name)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
-        *esp = PHYS_BASE;
+        *esp = PHYS_BASE - 12;
 		char *token = file_name;
 		char *save_ptr;
 		void *stack_pointer = *esp;
