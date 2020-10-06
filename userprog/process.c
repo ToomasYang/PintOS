@@ -37,7 +37,7 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  
+
   char *command_name, *args;
   command_name = strtok_r (fn_copy, " ", &args);
   
@@ -92,10 +92,18 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED)
+process_wait (tid_t child_tid)
 {
-  //sema_down(&thread_current()->some_semaphore);
-  return -1;
+  struct thread *curr = thread_current();
+  struct thread *child;
+  int exit_status;
+
+  if (child_tid != NULL) {
+    exit_status = 1;
+  } else {
+    exit_status = -1; 
+  }
+  return exit_status;
 }
 
 /* Free the current process's resources. */
@@ -444,7 +452,7 @@ setup_stack (void **esp, const char *file_name)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
-        *esp = PHYS_BASE;
+        *esp = PHYS_BASE - 12;
 		char *token = file_name;
 		char *save_ptr;
 		void *stack_pointer = *esp;

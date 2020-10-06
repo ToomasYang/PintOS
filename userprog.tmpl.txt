@@ -84,9 +84,17 @@ to be done at the kernel level, opening up processing times.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
+
+1. Have not gotten far enough to change or add new structs, or 
+global/static variables.
+
+2. File descriptors are unique within a single process, as the file 
+descriptors in each process correspond to the processes' file descriptor 
+table.
 
 ---- ALGORITHMS ----
 
@@ -117,6 +125,21 @@ to be done at the kernel level, opening up processing times.
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
 
+3. For reading and writing user data, the code acquires the parameters
+for the system call and inputs them into the functions provided by
+file.c.
+
+4. The least number of inspections of the page table, would be 1,
+where the entire page table can be inspected. Then the most number
+would be 4096, inspecting 1 byte at a time. Similarly for a system
+call that copies only 2 bytes of data, the least number of inspections
+would be 1, and the most would be 2. Can't think of much ways to improve
+this.
+
+5.
+
+6. 
+
 ---- SYNCHRONIZATION ----
 
 >> B7: The "exec" system call returns -1 if loading the new executable
@@ -130,6 +153,7 @@ to be done at the kernel level, opening up processing times.
 >> that all resources are freed in each case?  How about when P
 >> terminates without waiting, before C exits?  After C exits?  Are
 >> there any special cases?
+
 
 ---- RATIONALE ----
 
