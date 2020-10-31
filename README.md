@@ -1,6 +1,7 @@
 # PintOS
 
 # Project B: User Programs
+Stored.
 
 # Project C: Threads
 
