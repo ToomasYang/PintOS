@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed-point.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -71,6 +72,8 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+static int load_avg;
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -98,6 +101,8 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
+  load_avg = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -135,8 +140,19 @@ thread_tick (void)
     kernel_ticks++;
 
   /* Enforce preemption. */
-  if (++thread_ticks >= TIME_SLICE)
+  if (++thread_ticks >= TIME_SLICE) {
+    if (t != idle_thread) {
+      struct list_elem *e;
+      struct thread * list_thread;
+      for (e = list_begin (&all_list); e != list_end (&all_list);
+        e = list_next (e))
+      {
+        list_thread = list_entry (e, struct thread, allelem);
+        
+      }
+    }
     intr_yield_on_return ();
+  }
 }
 
 /* Prints thread statistics. */
@@ -174,6 +190,7 @@ thread_create (const char *name, int priority,
   enum intr_level old_level;
 
   ASSERT (function != NULL);
+  ASSERT (priority >= PRI_MIN && priority <= PRI_MAX);
 
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
@@ -208,6 +225,10 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  if (thread_mlfqs) {
+    t->recent_cpu = 0;
+  }
 
   return tid;
 }
@@ -343,37 +364,42 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  thread_current ()->priority = new_priority;
+  thread_current()->priority = new_priority;
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void)
 {
-  return thread_current ()->priority;
+  return thread_current()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED)
+thread_set_nice (int nice)
 {
-  /* Not yet implemented. */
+  ASSERT (nice >= -20 && nice <= 20);
+  thread_current()->nice = nice;
+  int newPrio = PRI_MAX - (thread_get_recent_cpu() / 4) - nice * 2;
+  if (newPrio > PRI_MAX)
+    newPrio = PRI_MAX;
+  if (newPrio < PRI_MIN)
+    newPrio = PRI_MIN;
+  thread_set_priority(newPrio);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  return load_avg * 100;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -381,7 +407,7 @@ int
 thread_get_recent_cpu (void)
 {
   /* Not yet implemented. */
-  return 0;
+  return thread_current()->recent_cpu * 100;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
