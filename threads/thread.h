@@ -90,8 +90,12 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
+    int64_t sleeping_time;				/* Time the thread will sleep*/
+    int64_t time_start;					/* Time the thread started sleeping */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list_elem blockedelem;		/* List element for blocked list */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
