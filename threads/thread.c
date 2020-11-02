@@ -471,7 +471,7 @@ thread_set_nice (int nice)
     newPrio = PRI_MIN;
   thread_current()->priority - newPrio;
 
-  check_yield();
+  // check_yield();
   intr_set_level(old_level);
 }
 
