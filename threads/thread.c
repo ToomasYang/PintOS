@@ -251,6 +251,9 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+  /* Add to run queue. */
+  thread_unblock (t);
+
   if (thread_mlfqs) {
     old_level = intr_disable();
     t->nice = thread_current()->nice;      
@@ -259,9 +262,7 @@ thread_create (const char *name, int priority,
     intr_set_level(old_level);
   }
 
-  if (thread_current()->priority < priority) thread_yield();
-  /* Add to run queue. */
-  thread_unblock (t);
+  if (thread_current()->priority < priority) thread_yield(); 
 
   return tid;
 }
@@ -415,8 +416,12 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  if (thread_mlfqs)
+  if (thread_mlfqs) {
+    thread_current()->priority = FP_TO_INT(INT_TO_FP(PRI_MAX)
+      - thread_current()->recent_cpu / 4 - INT_TO_FP(thread_current()->nice * 2)));
     return;
+  }
+
   enum intr_level old_level = intr_disable();
   struct thread *curr = thread_current();
   int old_priority = curr->priority;
