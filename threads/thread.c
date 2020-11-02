@@ -147,23 +147,24 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  // if (thread_mlfqs) {
-  //     if (t != idle_thread)
-  //       t->recent_cpu += 1;
-  //     if (timer_ticks() % 4 == 0) {
-  //       if (timer_ticks() % TIMER_FREQ == 0) {
-  //         ready_thread = (t == idle_thread) ? 0 : 1;
-  //         ready_thread += list_size(&ready_list);
-  //         load_avg = MULT((INT_TO_FP(59) / 60), load_avg) + 
-  //           INT_TO_FP(1) / 60 * ready_thread;
-  //       }
-  //       thread_foreach (update_cpu, 0);
-  //       thread_foreach (thread_set_priority, 0);
-  //       if (timer_ticks() % TIMER_FREQ == 0)
-  //         list_sort(&ready_list, (list_less_func *)&threadCompPriority, NULL);
-  //       intr_yield_on_return();
-  //     }
-  // } else
+  if (thread_mlfqs) {
+      if (t != idle_thread) {
+        t->recent_cpu += 1; thread_ticks += 1;
+      }
+      if (timer_ticks() % 4 == 0) {
+        if (timer_ticks() % TIMER_FREQ == 0) {
+          ready_thread = (t == idle_thread) ? 0 : 1;
+          ready_thread += list_size(&ready_list);
+          load_avg = MULT((INT_TO_FP(59) / 60), load_avg) + 
+            INT_TO_FP(1) / 60 * ready_thread;
+        }
+        thread_foreach (update_cpu, 0);
+        thread_foreach (thread_set_priority, 0);
+        if (timer_ticks() % TIMER_FREQ == 0)
+          list_sort(&ready_list, (list_less_func *)&threadCompPriority, NULL);
+        intr_yield_on_return();
+      }
+  } else
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 }
