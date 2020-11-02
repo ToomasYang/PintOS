@@ -258,7 +258,7 @@ thread_create (const char *name, int priority,
     intr_set_level (old_level);
   }
 
-  // if (thread_current()->priority < priority) thread_yield();
+  if (thread_current()->priority < priority) thread_yield();
   /* Add to run queue. */
   thread_unblock (t);
 
