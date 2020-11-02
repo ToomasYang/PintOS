@@ -205,29 +205,26 @@ lock_acquire (struct lock *lock)
   struct thread *curr = thread_current();
   struct lock *temp;
 //change
-  /* Lock is currently held by some thread */
   if (!thread_mlfqs && lock->holder != NULL) {
     curr->waitingLock = lock;
   	temp = lock;
   	while (temp != NULL && (temp->maxPriority < curr->priority)) {
+      //Iterate through threads to donate priority
   	  temp->maxPriority = curr->priority;
-  	  /* Donate priority to its holder thread */
   	  thread_donate_priority(temp->holder);
-  	  //Cycle through the locks to donate priority
   	  temp = temp->holder->waitingLock;
   	}
   }
 
   sema_down (&lock->semaphore);
+
   enum intr_level old_level = intr_disable();
   curr = thread_current();
-  if (!thread_mlfqs)
-  {
+  if (!thread_mlfqs) {
     curr->waitingLock = NULL;
 	  lock->maxPriority = curr->priority;
 	  thread_hold_lock(lock);
   }
-
   lock->holder = thread_current();
   intr_set_level(old_level);
 }
@@ -376,10 +373,10 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 }
 
 //Change
-bool condCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+bool condCompPriority(const struct list_elem *a, const struct list_elem *b)
 {
-  struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
-  struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
-  return list_entry(list_front(&sa->semaphore.waiters), struct thread, elem)->priority > \
-		 list_entry(list_front(&sb->semaphore.waiters), struct thread, elem)->priority;
+  struct semaphore_elem *semaA = list_entry(a, struct semaphore_elem, elem);
+  struct semaphore_elem *semaB = list_entry(b, struct semaphore_elem, elem);
+  return list_entry(list_front(&semaA->semaphore.waiters), struct thread, elem)->priority > \
+		 list_entry(list_front(&semaB->semaphore.waiters), struct thread, elem)->priority;
 }

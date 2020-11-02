@@ -143,9 +143,10 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-bool threadCompPriority(const struct list_elem *, const struct list_elem *, void * UNUSED);
-void thread_donate_priority(struct thread *);
+bool threadCompPriority(const struct list_elem *, const struct list_elem *);
 bool lockCompPriority(const struct list_elem *, const struct list_elem *);
-void thread_hold_lock(struct lock *lock);
+void thread_donate_priority(struct thread *);
+void thread_hold_lock(struct lock *);
+void thread_update_priority(struct thread *);
 
 #endif /* threads/thread.h */
