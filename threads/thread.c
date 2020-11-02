@@ -74,6 +74,7 @@ void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
 static int load_avg;
+static void update_cpu(struct thread *t, void aux);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -130,6 +131,8 @@ thread_tick (void)
 {
   struct thread *t = thread_current ();
 
+  int ready_thread;
+
   /* Update statistics. */
   if (t == idle_thread)
     idle_ticks++;
@@ -144,34 +147,37 @@ thread_tick (void)
       if (t != idle_thread)
         /* Update recent CPU of the current thread on every tick. */
         t->recent_cpu = INT_ADD(t->recent_cpu, 1);
-      if (timer_ticks () % TIMER_FREQ == 0) {
-        // ready_threads = is_idle_thread ? 0 : 1;
-        // ready_threads += list_size (&ready_list);
-        // load_avg = FP_MUL(INT_TO_FP(59) / 60, load_avg)
-        //   + INT_TO_FP(1) / 60 * ready_threads;
-        // thread_foreach (update_priority_and_cpu,
-        //                 (void *) &update_load_and_cpu);
-        // if (update_load_and_cpu)
-        //   list_sort (&ready_list, thread_priority_compare, NULL);
-        // intr_yield_on_return ();
+      if (timer_ticks() % 4 == 0)
+        thread_foreach (thread_set_priority, 0);
+      if (timer_ticks() % TIMER_FREQ == 0) {
+        ready_thread = (t == idle_thread) ? 0 : 1;
+        ready_thread += list_size(&ready_list);
+        load_avg = ADD(MULT(DIV(INT_TO_FP(59), INT_TO_FP(60)), load_avg),
+          MULT(DIV(INT_TO_FP(1), INT_TO_FP(60)), ready_thread));
+        thread_foreach (update_cpu, 0);
+        list_sort (&ready_list, (list_less_func *)&threadCompPriority, NULL);
+        intr_yield_on_return ();
       }
   } else if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+}
 
-  /* Enforce preemption. */
-  if (++thread_ticks >= TIME_SLICE) {
-    if (t != idle_thread) {
-      struct list_elem *e;
-      struct thread * list_thread;
-      for (e = list_begin (&all_list); e != list_end (&all_list);
-        e = list_next (e))
-      {
-        list_thread = list_entry (e, struct thread, allelem);
-        
-      }
-    }
-    intr_yield_on_return ();
-  }
+static void
+update_cpu(struct thread *t, void * aux) {
+  if (t == idle_thread)
+    return;
+  
+  t->recent_cpu = ADD(
+    MULT(
+      DIV(
+        INT_MULT(load_avg, 2),
+        ADD(
+          INT_MULT(load_avg, 2), 
+          INT_TO_FP(1)
+        )
+      ),
+      t->recent_cpu),
+    INT_TO_FP(t->nice));
 }
 
 /* Prints thread statistics. */
@@ -457,7 +463,7 @@ thread_get_recent_cpu (void)
   /* Not yet implemented. */
   return INT_MULT(thread_current()->recent_cpu, 100);
 }
-
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
