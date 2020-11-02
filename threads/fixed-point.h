@@ -7,8 +7,8 @@
 #define F 1 << (Q)
 
 #define INT_TO_FP(n) (n * F)
-#define X_TO_INT_ZERO(x) (x / F)
-#define X_TO_INT_NEAR(x) ((x) >= 0 ? ((x + F / 2) / F) : ((x - F / 2) / F))
+#define FP_TO_INT_ZERO(x) (x / F)
+#define FP_TO_INT_NEAR(x) ((x) >= 0 ? ((x + F / 2) / F) : ((x - F / 2) / F))
 #define ADD(x, y) (x + y)
 #define SUB(x, y) (x - y)
 #define INT_ADD(x, n) (x + n * F)
