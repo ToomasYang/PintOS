@@ -252,13 +252,11 @@ thread_create (const char *name, int priority,
 
   if (thread_mlfqs) {
     t->nice = thread_current()->nice;      
-    old_level = intr_disable ();
     t->recent_cpu = thread_current()->recent_cpu;
     t->priority = thread_current()->priority;
-    intr_set_level (old_level);
   }
 
-  if (thread_current()->priority < priority) thread_yield();
+  // if (thread_current()->priority < priority) thread_yield();
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -462,7 +460,6 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
   return INT_MULT(thread_current()->recent_cpu, 100);
 }
 
@@ -671,7 +668,7 @@ allocate_tid (void)
 
   return tid;
 }
-//Change
+
 bool
 threadCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
@@ -706,7 +703,7 @@ void thread_update_priority(struct thread *t)
   if (!list_empty(&t->heldLocks))
   {
     list_sort(&t->heldLocks, lockCompPriority, NULL);
-	lock_pri = list_entry(list_front(&t->heldLocks), struct lock, elem)->maxPriority;
+	  lock_pri = list_entry(list_front(&t->heldLocks), struct lock, elem)->maxPriority;
     if (max_pri < lock_pri)
 	  max_pri = lock_pri;
   }
@@ -739,7 +736,7 @@ void thread_hold_lock(struct lock *lock)
   if (cur->priority < lock->maxPriority)
   {
     cur->priority = lock->maxPriority;
-	thread_yield();
+	  thread_yield();
   }
 
   intr_set_level(old_level);
