@@ -420,9 +420,9 @@ thread_set_priority (int new_priority)
   struct thread *curr = thread_current();
 
   if (thread_mlfqs) {
-    curr->priority = FP_TO_INT(INT_TO_FP(PRI_MAX)
+    curr->priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX)
       - curr->recent_cpu / 4 - INT_TO_FP(curr->nice * 2));
-    if (curr->priority > PRI_MAX) curr->PRI_MAX;
+    if (curr->priority > PRI_MAX) curr->priority = PRI_MAX;
     if (curr->priority < PRI_MIN) curr->priority = PRI_MIN;
     intr_set_level(old_level);
     return;
@@ -469,7 +469,7 @@ thread_set_nice (int nice)
     newPrio = PRI_MAX;
   if (newPrio < PRI_MIN)
     newPrio = PRI_MIN;
-  thread_set_priority(newPrio);
+  thread_current()->priority - newPrio;
 
   check_yield();
   intr_set_level(old_level);
