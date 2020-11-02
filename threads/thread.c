@@ -416,14 +416,18 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
+  enum intr_level old_level = intr_disable();
+  struct thread *curr = thread_current();
+
   if (thread_mlfqs) {
-    thread_current()->priority = FP_TO_INT(INT_TO_FP(PRI_MAX)
-      - thread_current()->recent_cpu / 4 - INT_TO_FP(thread_current()->nice * 2)));
+    curr->priority = FP_TO_INT(INT_TO_FP(PRI_MAX)
+      - curr->recent_cpu / 4 - INT_TO_FP(curr->nice * 2));
+    if (curr->priority > PRI_MAX) curr->PRI_MAX;
+    if (curr->priority < PRI_MIN) curr->priority = PRI_MIN;
+    intr_set_level(old_level);
     return;
   }
 
-  enum intr_level old_level = intr_disable();
-  struct thread *curr = thread_current();
   int old_priority = curr->priority;
   curr->originalPriority = new_priority;
 
