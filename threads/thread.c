@@ -255,7 +255,7 @@ thread_create (const char *name, int priority,
     old_level = intr_disable();
     t->nice = thread_current()->nice;      
     t->recent_cpu = thread_current()->recent_cpu;
-    t->priority = thread_current()->priority;
+    thread_set_priority(priority);
     intr_set_level(old_level);
   }
 
@@ -420,11 +420,11 @@ thread_set_priority (int new_priority)
   struct thread *curr = thread_current();
 
   if (thread_mlfqs) {
-    // curr->priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX)
-    //   - curr->recent_cpu / 4 - INT_TO_FP(curr->nice * 2));
-    // if (curr->priority > PRI_MAX) curr->priority = PRI_MAX;
-    // if (curr->priority < PRI_MIN) curr->priority = PRI_MIN;
-    // intr_set_level(old_level);
+    curr->priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX)
+      - curr->recent_cpu / 4 - INT_TO_FP(curr->nice * 2));
+    if (curr->priority > PRI_MAX) curr->priority = PRI_MAX;
+    if (curr->priority < PRI_MIN) curr->priority = PRI_MIN;
+    intr_set_level(old_level);
     return;
   }
 
