@@ -115,9 +115,10 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters))
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+  if (!list_empty (&sema->waiters)){
+    list_sort(&sema->waiters, threadCompPriority, NULL);
+    thread_unblock (list_entry (list_pop_front (&sema->waiters),struct thread, elem));
+  }
   sema->value++;
   //Change
   thread_yield();
@@ -218,16 +219,13 @@ lock_acquire (struct lock *lock)
   }
 
   sema_down (&lock->semaphore);
-
   enum intr_level old_level = intr_disable();
-
+  curr = thread_current();
   if (!thread_mlfqs)
   {
-	/* Now that I've got the lock, I'm not waiting for anylock. */
     curr->waitingLock = NULL;
-	/* Besides, the max_priority of this lock must be my priority. */
-	 lock->maxPriority = curr->priority;
-	 thread_hold_lock(lock);
+	  lock->maxPriority = curr->priority;
+	  thread_hold_lock(lock);
   }
 
   lock->holder = thread_current();
