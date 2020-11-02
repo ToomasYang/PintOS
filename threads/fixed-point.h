@@ -4,18 +4,18 @@
 #define fp_t int
 #define P 17
 #define Q 14
-#define FRACTION 1<<(Q)
+#define F 1 << Q
 
-#if P + Q != 31
-#error "FATAL ERROR: P + Q != 31."
-#endif
-
-#define INT_ADD(x, n) (x) + (n) * (FRACTION)
-#define INT_SUB(x, n) (x) - (n) * (FRACTION)
-#define CONVERT_TO_FP(x) (x) * (FRACTION)
-#define CONVERT_TO_INT_ZERO(x) (x) / (FRACTION)
-#define CONVERT_TO_INT_NEAR(x) ((x) >= 0 ? ((x) + (FRACTION) / 2) / (FRACTION) : ((x) - (FRACTION) / 2) / (FRACTION))
-#define FP_MUL(x, y) ((int64_t)(x)) * (y) / (FRACTION)
-#define FP_DIV(x, y) ((int64_t)(x)) * (FRACTION) / (y)
+#define INT_TO_FP (n) (n * F)
+#define X_TO_INT_ZERO(x) (x / F)
+#define X_TO_INT_NEAR(x) ((x) >= 0 ? ((x + F / 2) / F) : ((x - F / 2) / F))
+#define ADD(x, y) (x + y)
+#define SUB(x, y) (x - y)
+#define INT_ADD(x, n) (x + n * F)
+#define INT_SUB(x, n) (x - n * F)
+#define MULT(x, y) (((int64_t)x) * y / F)
+#define INT_MULT(x, n) (x * n)
+#define DIV(x, y) (((int64_t)x) * F / y)
+#define INT_DIV(x, n) (x / n)
 
 #endif

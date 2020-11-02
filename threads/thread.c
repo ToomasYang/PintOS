@@ -139,6 +139,31 @@ thread_tick (void)
   else
     kernel_ticks++;
 
+  if (thread_mlfqs) {
+      if (t != idle_thread)
+        /* Update recent CPU of the current thread on every tick. */
+        t->recent_cpu = INT_ADD(t->recent_cpu, 1);
+      if (timer_ticks () % TIMER_FREQ == 0) {
+              /* Update the load average once per second using:
+                 load_avg = (59 / 60) * load_avg + (1 / 60) * ready_threads
+                 where ready_threads is the number of threads that are either
+                 running or ready to run at time of update 
+                 (not including the idle thread). */
+              ready_threads = is_idle_thread ? 0 : 1;
+              ready_threads += list_size (&ready_list);
+              load_avg = FP_MUL(INT_TO_FP(59) / 60, load_avg)
+                + INT_TO_FP(1) / 60 * ready_threads;
+            }
+          thread_foreach (update_priority_and_cpu,
+                          (void *) &update_load_and_cpu);
+          if (update_load_and_cpu)
+            list_sort (&ready_list, thread_priority_compare, NULL);
+          intr_yield_on_return ();
+        }
+  } else if (++thread_ticks >= TIME_SLICE)
+    intr_yield_on_return ();
+
+  if (t != idle_thread)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE) {
     if (t != idle_thread) {
@@ -369,8 +394,6 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  //thread_current ()->priority = new_priority;
-  //change
   if (thread_mlfqs)
     return;
   enum intr_level old_level = intr_disable();
@@ -398,13 +421,25 @@ void
 thread_set_nice (int nice)
 {
   ASSERT (nice >= -20 && nice <= 20);
+
+  enum intr_level old_level = intr_disable();
   thread_current()->nice = nice;
+
   int newPrio = PRI_MAX - (thread_get_recent_cpu() / 4) - nice * 2;
   if (newPrio > PRI_MAX)
     newPrio = PRI_MAX;
   if (newPrio < PRI_MIN)
     newPrio = PRI_MIN;
   thread_set_priority(newPrio);
+
+  if (!list_empty (&ready_list) && thread_current ()->priority
+      < list_entry (list_front (&ready_list), struct thread, elem)->priority) {
+      if (intr_context ())
+        intr_yield_on_return();
+      else
+        thread_yield ();
+  }
+  intr_set_level(old_level);
 }
 
 /* Returns the current thread's nice value. */
@@ -418,7 +453,7 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 {
-  return load_avg * 100;
+  return INT_MULT(load_avg, 100);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -426,7 +461,7 @@ int
 thread_get_recent_cpu (void)
 {
   /* Not yet implemented. */
-  return thread_current()->recent_cpu * 100;
+  return INT_MULT(thread_current()->recent_cpu, 100);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
