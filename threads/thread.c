@@ -400,7 +400,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  if (thread_mlfqs)
+  if (!thread_mlfqs)
     return;
   enum intr_level old_level = intr_disable();
   struct thread *curr = thread_current();
@@ -545,6 +545,8 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
+  enum intr_level old_level;
+
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
@@ -555,12 +557,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  //list_push_back (&all_list, &t->allelem);
-  //Change
+  
+  old_level = intr_disable ();
   t->originalPriority = priority;
   list_init(&t->heldLocks);
   t->waitingLock = NULL;
   list_insert_ordered(&all_list, &t->allelem, (list_less_func *)&threadCompPriority, NULL);
+  intr_set_level (old_level);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
