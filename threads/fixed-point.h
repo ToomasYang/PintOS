@@ -4,7 +4,7 @@
 #define fp_t int
 #define P 17
 #define Q 14
-#define F 1 << Q
+#define F 1 << (Q)
 
 #define INT_TO_FP(n) (n * F)
 #define X_TO_INT_ZERO(x) (x / F)

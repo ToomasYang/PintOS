@@ -104,6 +104,9 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 
+  initial_thread->nice = 0;
+  initial_thread->recent_cpu = 0;
+
   load_avg = 0;
 }
 
@@ -246,15 +249,19 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-  intr_set_level (old_level);
+  if (thread_mlfqs) {
+    t->nice = thread_current()->nice;      
+    old_level = intr_disable ();
+    t->recent_cpu = thread_current()->recent_cpu;
+    t->priority = thread_current()->priority;
+    intr_set_level (old_level);
+  }
 
   /* Add to run queue. */
   thread_unblock (t);
 
-  if (thread_mlfqs) {
-    t->recent_cpu = 0;
-  }
   if (thread_current()->priority < priority) thread_yield();
+
 
   return tid;
 }
