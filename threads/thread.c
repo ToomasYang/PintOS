@@ -319,7 +319,7 @@ thread_unblock (struct thread *t)
   list_insert_ordered(&ready_list, &t->elem, (list_less_func *)&threadCompPriority, NULL);
   
   t->status = THREAD_READY;
-  check_yield();
+  // check_yield();
   intr_set_level (old_level);
 }
 
@@ -585,8 +585,6 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
-  enum intr_level old_level;
-
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
@@ -598,12 +596,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   
-  old_level = intr_disable ();
   t->originalPriority = priority;
   list_init(&t->heldLocks);
   t->waitingLock = NULL;
   list_insert_ordered(&all_list, &t->allelem, (list_less_func *)&threadCompPriority, NULL);
-  intr_set_level (old_level);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
