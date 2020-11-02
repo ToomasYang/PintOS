@@ -146,22 +146,22 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  if (thread_mlfqs) {
-      if (t != idle_thread)
-        /* Update recent CPU of the current thread on every tick. */
-        t->recent_cpu = INT_ADD(t->recent_cpu, 1);
-      if (timer_ticks() % 4 == 0)
-        thread_foreach (thread_set_priority, 0);
-      if (timer_ticks() % TIMER_FREQ == 0) {
-        ready_thread = (t == idle_thread) ? 0 : 1;
-        ready_thread += list_size(&ready_list);
-        load_avg = ADD(MULT(DIV(INT_TO_FP(59), INT_TO_FP(60)), load_avg),
-          MULT(DIV(INT_TO_FP(1), INT_TO_FP(60)), ready_thread));
-        thread_foreach (update_cpu, 0);
-        list_sort (&ready_list, (list_less_func *)&threadCompPriority, NULL);
-        intr_yield_on_return ();
-      }
-  } else if (++thread_ticks >= TIME_SLICE)
+  // if (thread_mlfqs) {
+  //     if (t != idle_thread)
+  //       /* Update recent CPU of the current thread on every tick. */
+  //       t->recent_cpu = INT_ADD(t->recent_cpu, 1);
+  //     if (timer_ticks() % 4 == 0)
+  //       thread_foreach (thread_set_priority, 0);
+  //     if (timer_ticks() % TIMER_FREQ == 0) {
+  //       ready_thread = (t == idle_thread) ? 0 : 1;
+  //       ready_thread += list_size(&ready_list);
+  //       load_avg = ADD(MULT(DIV(INT_TO_FP(59), INT_TO_FP(60)), load_avg),
+  //         MULT(DIV(INT_TO_FP(1), INT_TO_FP(60)), ready_thread));
+  //       thread_foreach (update_cpu, 0);
+  //       intr_yield_on_return ();
+  //     }
+  // } else
+  if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 }
 
@@ -250,17 +250,18 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level (old_level);
-  /* Add to run queue. */
-  thread_unblock (t);
 
   if (thread_mlfqs) {
     t->nice = thread_current()->nice;      
     old_level = intr_disable ();
     t->recent_cpu = thread_current()->recent_cpu;
     t->priority = thread_current()->priority;
+    intr_set_level (old_level);
   }
 
-  if (thread_current()->priority < priority) thread_yield();
+  // if (thread_current()->priority < priority) thread_yield();
+  /* Add to run queue. */
+  thread_unblock (t);
 
   return tid;
 }
@@ -298,9 +299,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  //Change
+  
   list_insert_ordered(&ready_list, &t->elem, (list_less_func *)&threadCompPriority, NULL);
-  //list_push_back (&ready_list, &t->elem);
+  
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -371,9 +372,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (curr != idle_thread)
-    //Change
      list_insert_ordered(&ready_list, &curr->elem, (list_less_func *)&threadCompPriority, NULL);
-    //list_push_back (&ready_list, &cur->elem);
   curr->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -400,8 +399,6 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  if (!thread_mlfqs)
-    return;
   enum intr_level old_level = intr_disable();
   struct thread *curr = thread_current();
   int old_priority = curr->priority;
