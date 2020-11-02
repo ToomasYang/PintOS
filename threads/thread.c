@@ -607,15 +607,12 @@ allocate_tid (void)
   return tid;
 }
 //Change
-bool
-threadCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
+bool threadCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
 		return list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority;
 }
 
 /* Donate the priority of current thread to thread t. */
-void thread_donate_priority(struct thread *t)
-{
+void thread_donate_priority(struct thread *t) {
   enum intr_level old_level = intr_disable();
   thread_update_priority(t);
 
@@ -629,11 +626,10 @@ void thread_donate_priority(struct thread *t)
   intr_set_level(old_level);
 }
 
-void thread_update_priority(struct thread *t)
-{
+void thread_update_priority(struct thread *t) {
   enum intr_level old_level = intr_disable();
-  int max_pri = t->originalPriority;
-  int lock_pri;
+  int maxPriority = t->originalPriority;
+  int newPriority;
 
   /* If the thread is holding locks, pick the one with the highest max_priority.
    * And if this priority is greater than the original base priority,
@@ -641,17 +637,15 @@ void thread_update_priority(struct thread *t)
   if (!list_empty(&t->heldLocks))
   {
     list_sort(&t->heldLocks, lockCompPriority, NULL);
-	lock_pri = list_entry(list_front(&t->heldLocks), struct lock, elem)->maxPriority;
-    if (max_pri < lock_pri)
-	  max_pri = lock_pri;
+	  newPriority = list_entry(list_front(&t->heldLocks), struct lock, elem)->maxPriority;
+    if (maxPriority < newPriority) maxPriority = newPriority;
   }
-  t->priority = max_pri;
+    t->priority = maxPriority;
 
   intr_set_level(old_level);
 }
 
-void thread_remove_lock(struct lock *lock)
-{
+void thread_remove_lock(struct lock *lock) {
   enum intr_level old_level = intr_disable();
   list_remove(&lock->elem);
   thread_update_priority(thread_current());
@@ -659,22 +653,19 @@ void thread_remove_lock(struct lock *lock)
   intr_set_level(old_level);
 }
 
-bool lockCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
+bool lockCompPriority(const struct list_elem *a, const struct list_elem *b) {
   return list_entry(a, struct lock, elem)->maxPriority > list_entry(b, struct lock, elem)->maxPriority;
 }
 
-void thread_hold_lock(struct lock *lock)
-{
+void thread_hold_lock(struct lock *lock) {
   enum intr_level old_level = intr_disable();
-  struct thread *cur = thread_current();
-  list_insert_ordered(&cur->heldLocks, &lock->elem, lockCompPriority, NULL);
+  struct thread *curr = thread_current();
+  list_insert_ordered(&curr->heldLocks, &lock->elem, lockCompPriority, NULL);
 
   /* Donate the lock's priority */
-  if (cur->priority < lock->maxPriority)
-  {
-    cur->priority = lock->maxPriority;
-	thread_yield();
+  if (curr->priority < lock->maxPriority) {
+    curr->priority = lock->maxPriority;
+	  thread_yield();
   }
 
   intr_set_level(old_level);
