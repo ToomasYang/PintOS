@@ -147,25 +147,24 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  // if (thread_mlfqs) {
-  //     if (t != idle_thread)
-  //       /* Update recent CPU of the current thread on every tick. */
-  //       t->recent_cpu = INT_ADD(t->recent_cpu, 1);
-  //     if (timer_ticks() % 4 == 0) {
-  //       if (timer_ticks() % TIMER_FREQ == 0) {
-  //         ready_thread = (t == idle_thread) ? 0 : 1;
-  //         ready_thread += list_size(&ready_list);
-  //         load_avg = MULT((INT_TO_FP(59) / 60), load_avg) + 
-  //           INT_TO_FP(1) / 60 * ready_thread;
-  //       }
-  //       thread_foreach (update_cpu, 0);
-  //       thread_foreach (thread_set_priority, 0);
-  //       if (timer_ticks() % TIMER_FREQ == 0)
-  //         list_sort(&ready_list, (list_less_func *)&threadCompPriority, NULL);
-  //       intr_yield_on_return();
-  //     }
-  // } else
-  if (++thread_ticks >= TIME_SLICE)
+  if (thread_mlfqs) {
+      if (t != idle_thread)
+        /* Update recent CPU of the current thread on every tick. */
+        t->recent_cpu = INT_ADD(t->recent_cpu, 1);
+      if (timer_ticks() % 4 == 0) {
+        if (timer_ticks() % TIMER_FREQ == 0) {
+          ready_thread = (t == idle_thread) ? 0 : 1;
+          ready_thread += list_size(&ready_list);
+          load_avg = MULT((INT_TO_FP(59) / 60), load_avg) + 
+            INT_TO_FP(1) / 60 * ready_thread;
+        }
+        thread_foreach (update_cpu, 0);
+        thread_foreach (thread_set_priority, 0);
+        if (timer_ticks() % TIMER_FREQ == 0)
+          list_sort(&ready_list, (list_less_func *)&threadCompPriority, NULL);
+        intr_yield_on_return();
+      }
+  } else if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 }
 
@@ -416,21 +415,18 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
+  if (thread_mlfqs)
+    return;
   enum intr_level old_level = intr_disable();
   struct thread *curr = thread_current();
   int old_priority = curr->priority;
-  // curr->originalPriority = new_priority;
-
-  // if (list_empty(&curr->heldLocks) || new_priority > old_priority)
-  // {
-  //   curr->priority = new_priority;
-	//   thread_yield();
-  // }
-  if (curr->originalPriority == curr->priority
-    || new_priority > curr->priority)
-    curr->priority = new_priority;
   curr->originalPriority = new_priority;
-  check_yield();
+
+  if (list_empty(&curr->heldLocks) || new_priority > old_priority)
+  {
+    curr->priority = new_priority;
+	  thread_yield();
+  }
   intr_set_level(old_level);
 }
 
