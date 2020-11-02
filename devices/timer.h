@@ -15,9 +15,14 @@ int64_t timer_elapsed (int64_t);
 
 /* Sleep and yield the CPU to other threads. */
 void timer_sleep (int64_t ticks);
+void process_blocked_threads (void);
 void timer_msleep (int64_t milliseconds);
 void timer_usleep (int64_t microseconds);
 void timer_nsleep (int64_t nanoseconds);
+
+/* Take threads off blocked list once done sleeping */
+void process_blocked_threads(void);
+
 
 /* Busy waits. */
 void timer_mdelay (int64_t milliseconds);
