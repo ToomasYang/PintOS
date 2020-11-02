@@ -12,6 +12,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "threads/fixed-point.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -144,26 +145,19 @@ thread_tick (void)
         /* Update recent CPU of the current thread on every tick. */
         t->recent_cpu = INT_ADD(t->recent_cpu, 1);
       if (timer_ticks () % TIMER_FREQ == 0) {
-              /* Update the load average once per second using:
-                 load_avg = (59 / 60) * load_avg + (1 / 60) * ready_threads
-                 where ready_threads is the number of threads that are either
-                 running or ready to run at time of update 
-                 (not including the idle thread). */
-              ready_threads = is_idle_thread ? 0 : 1;
-              ready_threads += list_size (&ready_list);
-              load_avg = FP_MUL(INT_TO_FP(59) / 60, load_avg)
-                + INT_TO_FP(1) / 60 * ready_threads;
-            }
-          thread_foreach (update_priority_and_cpu,
-                          (void *) &update_load_and_cpu);
-          if (update_load_and_cpu)
-            list_sort (&ready_list, thread_priority_compare, NULL);
-          intr_yield_on_return ();
-        }
+        // ready_threads = is_idle_thread ? 0 : 1;
+        // ready_threads += list_size (&ready_list);
+        // load_avg = FP_MUL(INT_TO_FP(59) / 60, load_avg)
+        //   + INT_TO_FP(1) / 60 * ready_threads;
+        // thread_foreach (update_priority_and_cpu,
+        //                 (void *) &update_load_and_cpu);
+        // if (update_load_and_cpu)
+        //   list_sort (&ready_list, thread_priority_compare, NULL);
+        // intr_yield_on_return ();
+      }
   } else if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 
-  if (t != idle_thread)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE) {
     if (t != idle_thread) {
