@@ -74,7 +74,7 @@ void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
 static int load_avg;
-static void update_cpu(struct thread *t, void aux);
+static void update_cpu(struct thread *t, void * aux);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
