@@ -75,6 +75,7 @@ static tid_t allocate_tid (void);
 
 static int load_avg;
 static void update_cpu(struct thread *t, void * aux);
+static void check_yield(void);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
