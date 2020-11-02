@@ -149,8 +149,7 @@ thread_tick (void)
 
   if (thread_mlfqs) {
       if (t != idle_thread)
-        /* Update recent CPU of the current thread on every tick. */
-        t->recent_cpu = INT_ADD(t->recent_cpu, 1);
+        t->recent_cpu += 1;
       if (timer_ticks() % 4 == 0) {
         if (timer_ticks() % TIMER_FREQ == 0) {
           ready_thread = (t == idle_thread) ? 0 : 1;
