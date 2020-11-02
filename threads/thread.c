@@ -707,15 +707,10 @@ allocate_tid (void)
 
   return tid;
 }
-<<<<<<< HEAD
 
 bool
 threadCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-=======
-//Change
-bool threadCompPriority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
->>>>>>> origin/PrioritySchedule
 		return list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority;
 }
 
