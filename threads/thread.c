@@ -233,7 +233,7 @@ thread_create (const char *name, int priority,
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack'
      member cannot be observed. */
-
+  old_level = intr_disable ();
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
   kf->eip = NULL;
@@ -249,6 +249,8 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+  intr_set_level (old_level);
+
   if (thread_mlfqs) {
     old_level = intr_disable();
     t->nice = thread_current()->nice;      
@@ -257,7 +259,7 @@ thread_create (const char *name, int priority,
     intr_set_level(old_level);
   }
 
-  // if (thread_current()->priority < priority) thread_yield();
+  if (thread_current()->priority < priority) thread_yield();
   /* Add to run queue. */
   thread_unblock (t);
 
