@@ -261,7 +261,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  if (thread_current()->priority < t->priority) thread_yield(); 
+  if (thread_current()->priority < priority) thread_yield(); 
 
   return tid;
 }
@@ -439,6 +439,16 @@ thread_set_nice (int nice)
 
   enum intr_level old_level = intr_disable();
   thread_current()->nice = nice;
+
+  int newPrio = FP_TO_INT_ZERO(
+    INT_TO_FP(PRI_MAX) - (thread_get_recent_cpu() / 4)
+    - INT_TO_FP(nice) * 2);
+  if (newPrio > PRI_MAX)
+    newPrio = PRI_MAX;
+  if (newPrio < PRI_MIN)
+    newPrio = PRI_MIN;
+  thread_current()->priority - newPrio;
+
   intr_set_level(old_level);
 }
 
@@ -560,15 +570,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
-  if(thread_mlfqs)	
-  {	
-    if(strcmp(t->name,"main")==0)	
-      t->recent_cpu = 0;	
-    else	
-      t->recent_cpu = INT_DIV(thread_get_recent_cpu(),100);	
-    priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX) - (t->recent_cpu / 4)- INT_TO_FP(t->nice) * 2);
-  }	
-  else
+  t->priority = priority;
   t->magic = THREAD_MAGIC;
   
   t->originalPriority = priority;
