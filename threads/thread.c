@@ -61,6 +61,8 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+extern struct list sleep_list;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -148,9 +150,8 @@ thread_tick (void)
     kernel_ticks++;
 
   if (thread_mlfqs) {
-      if (t != idle_thread) {
-        t->recent_cpu += 1; thread_ticks += 1;
-      }
+      if (t != idle_thread)
+        t->recent_cpu += 1;
       if (timer_ticks() % 4 == 0) {
         if (timer_ticks() % TIMER_FREQ == 0) {
           ready_thread = (t == idle_thread) ? 0 : 1;
@@ -159,12 +160,13 @@ thread_tick (void)
             INT_TO_FP(1) / 60 * ready_thread;
         }
         thread_foreach (update_cpu, 0);
-        thread_foreach (thread_set_priority, 0);
-        if (timer_ticks() % TIMER_FREQ == 0)
-          list_sort(&ready_list, (list_less_func *)&threadCompPriority, NULL);
+        
+        if (timer_ticks() % TIMER_FREQ == 0) {
+          thread_foreach (thread_set_priority, 0);
+        }
         intr_yield_on_return();
       }
-  } else
+  }
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 }
@@ -252,35 +254,12 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
-  if (thread_mlfqs) {
-    old_level = intr_disable();
-    t->nice = thread_current()->nice;      
-    t->recent_cpu = thread_current()->recent_cpu;
-    thread_set_priority(priority);
-    intr_set_level(old_level);
-  }
-
-  if (thread_current()->priority < priority) thread_yield(); 
-
   /* Add to run queue. */
   thread_unblock (t);
 
+  if (thread_current()->priority < priority) thread_yield(); 
+
   return tid;
-}
-
-static void
-check_yield(void) {
-  ASSERT (intr_get_level () == INTR_OFF);
-
-  if (!list_empty (&ready_list)
-      && thread_current ()->priority
-      < list_entry (list_front (&ready_list), struct thread, elem)->priority)
-    {
-      if (intr_context ())
-        intr_yield_on_return ();
-      else
-        thread_yield ();
-    }
 }
 
 /* Puts the current thread to sleep.  It will not be scheduled
@@ -318,9 +297,9 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   
   list_insert_ordered(&ready_list, &t->elem, (list_less_func *)&threadCompPriority, NULL);
-  
+  list_sort (&ready_list, (list_less_func *)&threadCompPriority, NULL);
   t->status = THREAD_READY;
-  // check_yield();
+
   intr_set_level (old_level);
 }
 
@@ -472,7 +451,6 @@ thread_set_nice (int nice)
     newPrio = PRI_MIN;
   thread_current()->priority - newPrio;
 
-  // check_yield();
   intr_set_level(old_level);
 }
 
