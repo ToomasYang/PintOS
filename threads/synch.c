@@ -372,7 +372,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
     cond_signal (cond, lock);
 }
 
-//Change
+//Used to sort sema list
 bool condCompPriority(const struct list_elem *a, const struct list_elem *b)
 {
   struct semaphore_elem *semaA = list_entry(a, struct semaphore_elem, elem);
