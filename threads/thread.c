@@ -77,7 +77,7 @@ static tid_t allocate_tid (void);
 
 static int load_avg;
 static void update_cpu(struct thread *t, void * aux);
-static void check_yield(void);
+static void update_priority(struct thread *t, void * aux);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -106,11 +106,6 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-
-  initial_thread->nice = 0;
-  initial_thread->recent_cpu = 0;
-
-  load_avg = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -152,23 +147,32 @@ thread_tick (void)
   if (thread_mlfqs) {
       if (t != idle_thread)
         t->recent_cpu += 1;
-      if (timer_ticks() % 4 == 0) {
+      if (timer_ticks() % TIMER_FREQ == 0) {
         if (timer_ticks() % TIMER_FREQ == 0) {
           ready_thread = (t == idle_thread) ? 0 : 1;
           ready_thread += list_size(&ready_list);
           load_avg = MULT((INT_TO_FP(59) / 60), load_avg) + 
             INT_TO_FP(1) / 60 * ready_thread;
+          thread_foreach (update_cpu, 1);
         }
-        thread_foreach (update_cpu, 0);
         
-        if (timer_ticks() % TIMER_FREQ == 0) {
-          thread_foreach (thread_set_priority, 0);
+        if (timer_ticks() % 4 == 0) {
+          thread_foreach (update_priority, 1);
         }
         intr_yield_on_return();
       }
   }
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+}
+
+static void
+update_priority(struct thread *t, void * aux) {
+  struct thread *curr = t;
+  curr->priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX)
+      - curr->recent_cpu / 4 - INT_TO_FP(curr->nice * 2));
+  if (curr->priority > PRI_MAX) curr->priority = PRI_MAX;
+  if (curr->priority < PRI_MIN) curr->priority = PRI_MIN;
 }
 
 static void
@@ -368,8 +372,10 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (curr != idle_thread)
-     list_insert_ordered(&ready_list, &curr->elem, (list_less_func *)&threadCompPriority, NULL);
+  if (curr != idle_thread) {
+    list_insert_ordered(&ready_list, &curr->elem, (list_less_func *)&threadCompPriority, NULL);
+    list_sort (&ready_list, (list_less_func *)&threadCompPriority, NULL);
+  }
   curr->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -399,15 +405,6 @@ thread_set_priority (int new_priority)
   enum intr_level old_level = intr_disable();
   struct thread *curr = thread_current();
 
-  if (thread_mlfqs) {
-    curr->priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX)
-      - curr->recent_cpu / 4 - INT_TO_FP(curr->nice * 2));
-    if (curr->priority > PRI_MAX) curr->priority = PRI_MAX;
-    if (curr->priority < PRI_MIN) curr->priority = PRI_MIN;
-    intr_set_level(old_level);
-    return;
-  }
-
   int old_priority = curr->priority;
   curr->originalPriority = new_priority;
 
@@ -416,6 +413,7 @@ thread_set_priority (int new_priority)
     curr->priority = new_priority;
 	  thread_yield();
   }
+
   intr_set_level(old_level);
 }
 
