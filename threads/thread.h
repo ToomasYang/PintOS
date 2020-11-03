@@ -96,8 +96,13 @@ struct thread
     int nice;
     int recent_cpu;
     int load_avg;
+
+    int64_t sleeping_time;				/* Time the thread will sleep*/
+    int64_t time_start;					/* Time the thread started sleeping */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list_elem blockedelem;		/* List element for blocked list */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -145,9 +150,10 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-bool threadCompPriority(const struct list_elem *, const struct list_elem *, void * UNUSED);
-void thread_donate_priority(struct thread *);
+bool threadCompPriority(const struct list_elem *, const struct list_elem *);
 bool lockCompPriority(const struct list_elem *, const struct list_elem *);
-void thread_hold_lock(struct lock *lock);
+void thread_donate_priority(struct thread *);
+void thread_hold_lock(struct lock *);
+void thread_update_priority(struct thread *);
 
 #endif /* threads/thread.h */
