@@ -576,7 +576,7 @@ init_thread (struct thread *t, const char *name, int priority)
       t->recent_cpu = 0;	
     else	
       t->recent_cpu = INT_DIV(thread_get_recent_cpu(),100);	
-    priority = PRI_MAX - tointround(divin(t->recent_cpu,4)) - (t->nice * 2);
+    priority = FP_TO_INT_ZERO(INT_TO_FP(PRI_MAX) - (thread_get_recent_cpu() / 4)- INT_TO_FP(t->nice) * 2);
   }	
   else
   t->magic = THREAD_MAGIC;
