@@ -439,16 +439,6 @@ thread_set_nice (int nice)
 
   enum intr_level old_level = intr_disable();
   thread_current()->nice = nice;
-
-  int newPrio = FP_TO_INT_ZERO(
-    INT_TO_FP(PRI_MAX) - (thread_get_recent_cpu() / 4)
-    - INT_TO_FP(nice) * 2);
-  if (newPrio > PRI_MAX)
-    newPrio = PRI_MAX;
-  if (newPrio < PRI_MIN)
-    newPrio = PRI_MIN;
-  thread_current()->priority - newPrio;
-
   intr_set_level(old_level);
 }
 
