@@ -88,26 +88,14 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int maxPriority;
-    int originalPriority;
-    struct list heldLocks;
-    struct lock *waitingLock;
     struct list_elem allelem;           /* List element for all threads list. */
-    int nice;
-    int recent_cpu;
-    int load_avg;
-
-    int64_t sleeping_time;				/* Time the thread will sleep*/
-    int64_t time_start;					/* Time the thread started sleeping */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    struct list_elem blockedelem;		/* List element for blocked list */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-    int exit_status;
 #endif
 
     /* Owned by thread.c. */
@@ -149,11 +137,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
-bool threadCompPriority(const struct list_elem *, const struct list_elem *);
-bool lockCompPriority(const struct list_elem *, const struct list_elem *);
-void thread_donate_priority(struct thread *);
-void thread_hold_lock(struct lock *);
-void thread_update_priority(struct thread *);
 
 #endif /* threads/thread.h */
