@@ -122,13 +122,13 @@ syscall_handler (struct intr_frame *f)
 
     case SYS_TELL:
       fd = *((int*)f->esp + 1);
-      file_tell(fd->file);
+      file_tell(fd);
       exit(f->eax);
       break;
 
     case SYS_CLOSE:
       fd = *((int*)f->esp + 1);
-      file_close(fd->file);
+      file_close(fd);
       exit(f->eax);
       break;
     }

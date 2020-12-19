@@ -42,7 +42,7 @@ process_execute (const char *file_name)
   command_name = strtok_r (fn_copy, " ", &args);
   
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (command_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   return tid;
@@ -57,15 +57,15 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-  char *command_name, *args;
-  command_name = strtok_r(file_name_," ", &args);
+  // char *command_name, *args;
+  // command_name = strtok_r(file_name_," ", &args);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (command_name, &if_.eip, &if_.esp);
+  success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -95,7 +95,6 @@ int
 process_wait (tid_t child_tid)
 {
   struct thread *curr = thread_current();
-  struct thread *child;
   int exit_status;
 
   if (child_tid != NULL) {
@@ -236,8 +235,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  char *command_name, *args;
+  command_name = strtok_r(file_name," ", &args);
+
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (command_name);
   if (file == NULL)
     {
       printf ("load: %s: open failed\n", file_name);
