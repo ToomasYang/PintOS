@@ -20,6 +20,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+// static void push_arguments (const char *[], int cnt, void **esp);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -38,8 +39,12 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char *token, *save_ptr;
+
+  token = strtok_r (fn_copy, " ", &save_ptr);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -54,18 +59,34 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  // const char **cmdline_tokens = (const char**) palloc_get_page(0);
+
+  // if (cmdline_tokens == NULL)
+  //   printf("[Error] Kernel Error: Not enough memory\n");
+
+  // char* token;
+  // char* save_ptr;
+  // int cnt = 0;
+  // for (token = strtok_r(file_name, " ", &save_ptr); token != NULL;
+  //     token = strtok_r(NULL, " ", &save_ptr))
+  //   cmdline_tokens[cnt++] = token;
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+  
+  // if (success)
+  //   push_arguments (cmdline_tokens, cnt, &if_.esp);
 
+  // palloc_free_page (cmdline_tokens);
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-
+  
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -75,6 +96,47 @@ start_process (void *file_name_)
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
+
+// static void
+// push_arguments (const char* cmdline_tokens[], int argc, void **esp)
+// {
+//   ASSERT(argc >= 0);
+
+//   int i, len = 0;
+//   void* argv_addr[argc];
+//   for (i = 0; i < argc; i++) {
+//     len = strlen(cmdline_tokens[i]) + 1;
+//     *esp -= len;
+//     memcpy(*esp, cmdline_tokens[i], len);
+//     argv_addr[i] = *esp;
+//   }
+
+//   // word align
+//   *esp = (void*)((unsigned int)(*esp) & 0xfffffffc);
+
+//   // last null
+//   *esp -= 4;
+//   *((uint32_t*) *esp) = 0;
+
+//   // setting **esp with argvs
+//   for (i = argc - 1; i >= 0; i--) {
+//     *esp -= 4;
+//     *((void**) *esp) = argv_addr[i];
+//   }
+
+//   // setting **argv (addr of stack, esp)
+//   *esp -= 4;
+//   *((void**) *esp) = (*esp + 4);
+
+//   // setting argc
+//   *esp -= 4;
+//   *((int*) *esp) = argc;
+
+//   // setting ret addr
+//   *esp -= 4;
+//   *((int*) *esp) = 0;
+
+// }
 
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
